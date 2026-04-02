@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pgtui-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-pgtui}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - pgtui-network
+    restart: unless-stopped
+
+  pgtui:
+      build: .
+      container_name: pgtui
+      stdin_open: true
+      tty: true
+      depends_on:
+        - postgres
+      environment:
+        DATABASE_URL: postgres://postgres:postgres@postgres:5432/pgtui
+      volumes:
+        - ./pgtui/config.toml:/root/.config/pgtui/config.toml
+      networks:
+        - pgtui-network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgtui-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - pgtui-network
+    restart: unless-stopped
+
+  
+networks:
+  pgtui-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  pgadmin_data:
